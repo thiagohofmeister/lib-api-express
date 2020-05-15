@@ -1,0 +1,35 @@
+{
+  "name": "@ths/lib-api-express-js",
+  "version": "0.0.1",
+  "description": "Library to APIs with ExpressJS.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rm -rf ./lib && tsc && cp package.json ./lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/thiagohofmeister/lib-api-express-js.git"
+  },
+  "author": "Thiago Hofmeister <thiago.souza@moovin.com.br>",
+  "license": "ISC",
+  "homepage": "https://github.com/thiagohofmeister/lib-api-express-js",
+  "dependencies": {
+    "camelcase": "^5.3.1",
+    "express": "^4.16.4",
+    "sequelize": "^4.42.0",
+    "sequelize-typescript": "^0.6.6"
+  },
+  "devDependencies": {
+    "@types/dotenv": "^6.1.0",
+    "@types/express": "^4.16.0",
+    "@types/node": "^10.12.15",
+    "@types/sequelize": "^4.27.33",
+    "@types/validator": "10.11.3",
+    "dotenv": "^6.1.0",
+    "ts": "^0.2.2",
+    "ts-loader": "^5.3.1",
+    "typescript": "~3.1.1",
+    "webpack": "^4.27.1"
+  }
+}
