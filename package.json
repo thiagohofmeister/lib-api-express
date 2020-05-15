@@ -1,5 +1,5 @@
 {
-  "name": "@ths/lib-api-express-js",
+  "name": "@thscore/lib-api-express-js",
   "version": "0.0.1",
   "description": "Library to APIs with ExpressJS.",
   "main": "index.js",
