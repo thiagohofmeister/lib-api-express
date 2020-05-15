@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2019",
+    "target": "ESNEXT",
     "outDir": "lib",
     "module": "commonjs",
     "experimentalDecorators": true,
