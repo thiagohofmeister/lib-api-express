@@ -1,11 +1,7 @@
 import { FindManyOptions, Repository as TypeOrmRepository } from 'typeorm'
-import {
-  DataNotFound,
-  FiltersDefault,
-  IEntityDataMapper,
-  IItemListModel,
-  IRepository
-} from '@1eg/lib-core-api-framework-js'
+import { FiltersDefault, IItemListModel, IRepository } from '../../Entities/Domain/Interfaces'
+import { IEntityDataMapper } from '../../DataMappers/Interfaces'
+import { DataNotFound } from '../../Entities/Domain/Exceptions'
 
 export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> implements IRepository<TDomainEntity> {
   /**
