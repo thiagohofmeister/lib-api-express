@@ -1,1 +1,2 @@
-export * from './TypeOrmRepositoryContract'
+export * from './TypeOrmMongoDBRepositoryContract'
+export * from './TypeOrmMysqlRepositoryContract'

@@ -1,32 +1,35 @@
-import { Repository as TypeOrmRepository } from 'typeorm'
-import { SelectQueryBuilder } from 'typeorm/query-builder/SelectQueryBuilder'
-import { IEntityDataMapper } from '../../DataMappers/Interfaces'
-import { DataNotFound } from '../../Entities/Domain/Exceptions'
-import { FiltersDefault, IItemListModel, IRepository } from '../../Entities/Domain/Interfaces'
+import { FindManyOptions, Repository as TypeOrmRepository } from 'typeorm'
+import {
+  DataNotFound,
+  FiltersDefault,
+  IEntityDataMapper,
+  IItemListModel,
+  IRepository
+} from '@1eg/lib-core-api-framework-js'
 
-export class TypeOrmRepositoryContract<TDomainEntity, TDalEntity> implements IRepository<TDomainEntity> {
+export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> implements IRepository<TDomainEntity> {
   /**
    * Repositório do ORM.
    *
-   * @template TDalEntity
+   * @template TDaoEntity
    *
-   * @property {TypeOrmRepository<TDalEntity>} repository
+   * @property {TypeOrmRepository<TDaoEntity>} repository
    */
-  protected readonly repository: TypeOrmRepository<TDalEntity>
+  protected readonly repository: TypeOrmRepository<TDaoEntity>
 
   /**
    * Conversor dos dados entre banco de dados e domínio.
    *
    * @template TDomainEntity
-   * @template TDalEntity
+   * @template TDaoEntity
    *
-   * @property {IEntityDataMapper<TDomainEntity, TDalEntity>} dataMapper
+   * @property {IEntityDataMapper<TDomainEntity, TDaoEntity>} dataMapper
    */
-  protected readonly dataMapper: IEntityDataMapper<TDomainEntity, TDalEntity>
+  protected readonly dataMapper: IEntityDataMapper<TDomainEntity, TDaoEntity>
 
   public constructor (
-    repository: TypeOrmRepository<TDalEntity>,
-    dataMapper: IEntityDataMapper<TDomainEntity, TDalEntity>
+    repository: TypeOrmRepository<TDaoEntity>,
+    dataMapper: IEntityDataMapper<TDomainEntity, TDaoEntity>
   ) {
     this.repository = repository
     this.dataMapper = dataMapper
@@ -36,11 +39,11 @@ export class TypeOrmRepositoryContract<TDomainEntity, TDalEntity> implements IRe
    * @inheritDoc
    */
   public async getAll (filters: FiltersDefault): Promise<IItemListModel<TDomainEntity>> {
-    const query = this.applyPaginator(filters, this.applySearch(filters, this.customToGetAll(filters, this.repository.createQueryBuilder())))
+    const where = this.applyPaginator(filters, this.applySearch(filters, this.customToGetAll(filters, {})))
 
     return {
-      total: await query.getCount(),
-      items: (await query.getMany()).map((e) => this.dataMapper.toDomain(e))
+      total: await this.repository.count(where),
+      items: (await this.repository.find(where)).map((e) => this.dataMapper.toDomain(e))
     }
   }
 
@@ -66,53 +69,85 @@ export class TypeOrmRepositoryContract<TDomainEntity, TDalEntity> implements IRe
 
       return this.dataMapper.toDomain(result)
     } catch (e) {
-      console.log(e)
       return null
     }
   }
 
   /**
+   * @inheritDoc
+   */
+  public async createOrUpdate (entity: TDomainEntity): Promise<TDomainEntity> {
+    return this.create(entity)
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public async delete (id: string): Promise<boolean> {
+    try {
+      await this.repository.delete(id)
+
+      return true
+    } catch (e) {
+      return false
+    }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public async update (entity: TDomainEntity, conditions?: {} | string): Promise<TDomainEntity> {
+    return this.create(entity)
+  }
+
+  /**
    * Aplica paginação na 'query'.
    *
-   * @template TDalEntity
+   * @template TDaoEntity
    *
    * @param {FiltersDefault} filters
-   * @param {SelectQueryBuilder<TDalEntity>} query
+   * @param {FindManyOptions<TDaoEntity>} query
    *
-   * @returns {SelectQueryBuilder<TDalEntity>}
+   * @returns {FindManyOptions<TDaoEntity>}
    */
-  public applyPaginator (filters: FiltersDefault, query: SelectQueryBuilder<TDalEntity>): SelectQueryBuilder<TDalEntity> {
+  public applyPaginator (filters: FiltersDefault, query: FindManyOptions<TDaoEntity>): FindManyOptions<TDaoEntity> {
     const skip = (this.getPage(filters) - 1) * this.getSize(filters)
-    const size = this.getSize(filters)
+    const take = this.getSize(filters)
 
-    return query.skip(skip).take(size)
+    query = {
+      ...query,
+      skip,
+      take
+    }
+
+    return query
   }
 
   /**
    * Permite aplicar modificações na 'query' do método getAll().
    *
-   * @template TDalEntity
+   * @template TDaoEntity
    *
    * @param {FiltersDefault} filters
-   * @param {SelectQueryBuilder<TDalEntity>} query
+   * @param {FindManyOptions<TDaoEntity>} query
    *
-   * @returns {SelectQueryBuilder<TDalEntity>}
+   * @returns {FindManyOptions<TDaoEntity>}
    */
-  protected customToGetAll (filters: FiltersDefault, query: SelectQueryBuilder<TDalEntity>): SelectQueryBuilder<TDalEntity> {
+  protected customToGetAll (filters: FiltersDefault, query: FindManyOptions<TDaoEntity>): FindManyOptions<TDaoEntity> {
     return query
   }
 
   /**
    * Aplica na 'query' as condições para o filtro de campo de busca.
    *
-   * @template TDalEntity
+   * @template TDaoEntity
    *
    * @param {FiltersDefault} filters
-   * @param {SelectQueryBuilder<TDalEntity>} query
+   * @param {FindManyOptions<TDaoEntity>} query
    *
-   * @returns {SelectQueryBuilder<TDalEntity>}
+   * @returns {FindManyOptions<TDaoEntity>}
    */
-  protected applySearch (filters: FiltersDefault, query: SelectQueryBuilder<TDalEntity>): SelectQueryBuilder<TDalEntity> {
+  protected applySearch (filters: FiltersDefault, query: FindManyOptions<TDaoEntity>): FindManyOptions<TDaoEntity> {
 
     if (!filters.query) {
       return query
@@ -120,11 +155,12 @@ export class TypeOrmRepositoryContract<TDomainEntity, TDalEntity> implements IRe
 
     const fieldsToWhere = []
     for (const field of this.getFieldsToSearch(filters)) {
-      fieldsToWhere.push(`${field} like '%${filters.query}%'`)
+      const nameReg = new RegExp(filters.query, 'i')
+      fieldsToWhere.push({ [field]: { $regex: nameReg } })
     }
 
     if (fieldsToWhere.length) {
-      query.andWhere(`(${fieldsToWhere.join(' OR ')})`)
+      query.where['$or'] = fieldsToWhere
     }
 
     return query
