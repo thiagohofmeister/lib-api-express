@@ -4,29 +4,29 @@ import { IEntityDataMapper } from '../../DataMappers/Interfaces'
 import { DataNotFound } from '../../Entities/Domain/Exceptions'
 import { FiltersDefault, IItemListModel, IRepository } from '../../Entities/Domain/Interfaces'
 
-export class TypeOrmMysqlRepositoryContract<TDomainEntity, TDalEntity> implements IRepository<TDomainEntity> {
+export class TypeOrmMysqlRepositoryContract<TDomainEntity, TDaoEntity> implements IRepository<TDomainEntity> {
   /**
    * Repositório do ORM.
    *
-   * @template TDalEntity
+   * @template TDaoEntity
    *
-   * @property {TypeOrmRepository<TDalEntity>} repository
+   * @property {TypeOrmRepository<TDaoEntity>} repository
    */
-  protected readonly repository: TypeOrmRepository<TDalEntity>
+  protected readonly repository: TypeOrmRepository<TDaoEntity>
 
   /**
    * Conversor dos dados entre banco de dados e domínio.
    *
    * @template TDomainEntity
-   * @template TDalEntity
+   * @template TDaoEntity
    *
-   * @property {IEntityDataMapper<TDomainEntity, TDalEntity>} dataMapper
+   * @property {IEntityDataMapper<TDomainEntity, TDaoEntity>} dataMapper
    */
-  protected readonly dataMapper: IEntityDataMapper<TDomainEntity, TDalEntity>
+  protected readonly dataMapper: IEntityDataMapper<TDomainEntity, TDaoEntity>
 
   public constructor (
-    repository: TypeOrmRepository<TDalEntity>,
-    dataMapper: IEntityDataMapper<TDomainEntity, TDalEntity>
+    repository: TypeOrmRepository<TDaoEntity>,
+    dataMapper: IEntityDataMapper<TDomainEntity, TDaoEntity>
   ) {
     this.repository = repository
     this.dataMapper = dataMapper
@@ -103,14 +103,14 @@ export class TypeOrmMysqlRepositoryContract<TDomainEntity, TDalEntity> implement
   /**
    * Aplica paginação na 'query'.
    *
-   * @template TDalEntity
+   * @template TDaoEntity
    *
    * @param {FiltersDefault} filters
-   * @param {SelectQueryBuilder<TDalEntity>} query
+   * @param {SelectQueryBuilder<TDaoEntity>} query
    *
-   * @returns {SelectQueryBuilder<TDalEntity>}
+   * @returns {SelectQueryBuilder<TDaoEntity>}
    */
-  public applyPaginator (filters: FiltersDefault, query: SelectQueryBuilder<TDalEntity>): SelectQueryBuilder<TDalEntity> {
+  public applyPaginator (filters: FiltersDefault, query: SelectQueryBuilder<TDaoEntity>): SelectQueryBuilder<TDaoEntity> {
     const skip = (this.getPage(filters) - 1) * this.getSize(filters)
     const size = this.getSize(filters)
 
@@ -120,28 +120,28 @@ export class TypeOrmMysqlRepositoryContract<TDomainEntity, TDalEntity> implement
   /**
    * Permite aplicar modificações na 'query' do método getAll().
    *
-   * @template TDalEntity
+   * @template TDaoEntity
    *
    * @param {FiltersDefault} filters
-   * @param {SelectQueryBuilder<TDalEntity>} query
+   * @param {SelectQueryBuilder<TDaoEntity>} query
    *
-   * @returns {SelectQueryBuilder<TDalEntity>}
+   * @returns {SelectQueryBuilder<TDaoEntity>}
    */
-  protected customToGetAll (filters: FiltersDefault, query: SelectQueryBuilder<TDalEntity>): SelectQueryBuilder<TDalEntity> {
+  protected customToGetAll (filters: FiltersDefault, query: SelectQueryBuilder<TDaoEntity>): SelectQueryBuilder<TDaoEntity> {
     return query
   }
 
   /**
    * Aplica na 'query' as condições para o filtro de campo de busca.
    *
-   * @template TDalEntity
+   * @template TDaoEntity
    *
    * @param {FiltersDefault} filters
-   * @param {SelectQueryBuilder<TDalEntity>} query
+   * @param {SelectQueryBuilder<TDaoEntity>} query
    *
-   * @returns {SelectQueryBuilder<TDalEntity>}
+   * @returns {SelectQueryBuilder<TDaoEntity>}
    */
-  protected applySearch (filters: FiltersDefault, query: SelectQueryBuilder<TDalEntity>): SelectQueryBuilder<TDalEntity> {
+  protected applySearch (filters: FiltersDefault, query: SelectQueryBuilder<TDaoEntity>): SelectQueryBuilder<TDaoEntity> {
 
     if (!filters.query) {
       return query
