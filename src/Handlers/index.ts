@@ -1,2 +1,3 @@
 export * from './Interfaces'
-export * from './Contract'
+export * from './Contracts'
+export * from './Events'
