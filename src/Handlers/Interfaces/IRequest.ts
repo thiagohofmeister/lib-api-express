@@ -5,4 +5,6 @@ import { IContext } from './IContext'
 export interface IRequest extends ExpressRequest {
   entityManager: EntityManager
   context: IContext
+  eventIO?: any
+  eventIOConnectedUsers?: { [key: string]: string }
 }
