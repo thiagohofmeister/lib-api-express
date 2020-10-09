@@ -1,4 +1,4 @@
-import { FindManyOptions, Repository as TypeOrmRepository } from 'typeorm'
+import { FindManyOptions, MongoRepository } from 'typeorm'
 import { FiltersDefault, IItemListModel, IRepository } from '../../Entities/Domain/Interfaces'
 import { IEntityDataMapper } from '../../DataMappers/Interfaces'
 import { DataNotFound } from '../../Entities/Domain/Exceptions'
@@ -9,9 +9,9 @@ export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> impleme
    *
    * @template TDaoEntity
    *
-   * @property {TypeOrmRepository<TDaoEntity>} repository
+   * @property {MongoRepository<TDaoEntity>} repository
    */
-  protected readonly repository: TypeOrmRepository<TDaoEntity>
+  protected readonly repository: MongoRepository<TDaoEntity>
 
   /**
    * Conversor dos dados entre banco de dados e domínio.
@@ -24,7 +24,7 @@ export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> impleme
   protected readonly dataMapper: IEntityDataMapper<TDomainEntity, TDaoEntity>
 
   public constructor (
-    repository: TypeOrmRepository<TDaoEntity>,
+    repository: MongoRepository<TDaoEntity>,
     dataMapper: IEntityDataMapper<TDomainEntity, TDaoEntity>
   ) {
     this.repository = repository
@@ -61,7 +61,7 @@ export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> impleme
    */
   public async create (entity: TDomainEntity): Promise<TDomainEntity> {
     try {
-      const result = await this.repository.save(this.dataMapper.toDaoEntity(entity))
+      const result = await this.repository.save(this.repository.create(this.dataMapper.toDaoEntity(entity)))
 
       return this.dataMapper.toDomain(result)
     } catch (e) {
