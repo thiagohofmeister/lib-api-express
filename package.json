@@ -1,6 +1,6 @@
 {
   "name": "@thscore/lib-api-express-js",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Library to APIs with ExpressJS.",
   "main": "index.js",
   "scripts": {
