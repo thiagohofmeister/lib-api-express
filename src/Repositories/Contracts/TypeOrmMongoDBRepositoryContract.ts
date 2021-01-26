@@ -1,7 +1,7 @@
 import { FindManyOptions, MongoRepository } from 'typeorm'
-import { FiltersDefault, IItemListModel, IRepository } from '../../Entities/Domain/Interfaces'
-import { IEntityDataMapper } from '../../DataMappers/Interfaces'
-import { DataNotFound } from '../../Entities/Domain/Exceptions'
+import { FiltersDefault, IItemListModel, IRepository } from '../../Entities'
+import { IEntityDataMapper } from '../../DataMappers'
+import { DataNotFound } from '../../Entities'
 
 export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> implements IRepository<TDomainEntity> {
   /**
@@ -41,6 +41,13 @@ export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> impleme
       total: await this.repository.count(where),
       items: (await this.repository.find(where)).map((e) => this.dataMapper.toDomain(e))
     }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  async findAll(options: FindManyOptions<TDaoEntity> | Partial<TDaoEntity>): Promise<TDomainEntity[]> {
+    return (await this.repository.find(options)).map(item => this.dataMapper.toDomain(item))
   }
 
   /**

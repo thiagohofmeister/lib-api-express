@@ -1,8 +1,8 @@
-import { Repository as TypeOrmRepository } from 'typeorm'
+import { FindConditions, FindManyOptions, ObjectID, Repository as TypeOrmRepository } from 'typeorm'
 import { SelectQueryBuilder } from 'typeorm/query-builder/SelectQueryBuilder'
-import { IEntityDataMapper } from '../../DataMappers/Interfaces'
-import { DataNotFound } from '../../Entities/Domain/Exceptions'
-import { FiltersDefault, IItemListModel, IRepository } from '../../Entities/Domain/Interfaces'
+import { IEntityDataMapper } from '../../DataMappers'
+import { DataNotFound } from '../../Entities'
+import { FiltersDefault, IItemListModel, IRepository } from '../../Entities'
 
 export class TypeOrmMysqlRepositoryContract<TDomainEntity, TDaoEntity> implements IRepository<TDomainEntity> {
   /**
@@ -47,6 +47,13 @@ export class TypeOrmMysqlRepositoryContract<TDomainEntity, TDaoEntity> implement
   /**
    * @inheritDoc
    */
+  public async findAll (options: FindManyOptions<TDaoEntity>): Promise<TDomainEntity[]> {
+    return (await this.repository.find(options)).map(item => this.dataMapper.toDomain(item))
+  }
+
+  /**
+   * @inheritDoc
+   */
   public async getOneById (id: string): Promise<TDomainEntity> {
     const entity = await this.repository.findOne(id)
 
@@ -73,19 +80,16 @@ export class TypeOrmMysqlRepositoryContract<TDomainEntity, TDaoEntity> implement
   /**
    * @inheritDoc
    */
-  public async createOrUpdate (entity: TDomainEntity): Promise<TDomainEntity> {
+  public async createOrUpdate (entity: TDomainEntity, conditions?: string | string[] | number | number[] | Date | Date[] | ObjectID | ObjectID[] | FindConditions<TDaoEntity>): Promise<TDomainEntity> {
     return this.create(entity)
   }
 
   /**
    * @inheritDoc
    */
-  public async delete (id: string): Promise<boolean> {
+  public async delete (criteria: string | string[] | number | number[] | Date | Date[] | ObjectID | ObjectID[] | FindConditions<TDaoEntity>): Promise<boolean> {
     try {
-      await this.repository.createQueryBuilder()
-        .delete()
-        .where('id = :id', { id })
-        .execute()
+      await this.repository.delete(criteria)
 
       return true
     } catch (e) {
@@ -96,7 +100,7 @@ export class TypeOrmMysqlRepositoryContract<TDomainEntity, TDaoEntity> implement
   /**
    * @inheritDoc
    */
-  public async update (entity: TDomainEntity, conditions?: {} | string): Promise<TDomainEntity> {
+  public async update (entity: TDomainEntity, conditions?: string | string[] | number | number[] | Date | Date[] | ObjectID | ObjectID[] | FindConditions<TDaoEntity>): Promise<TDomainEntity> {
     return this.create(entity)
   }
 
