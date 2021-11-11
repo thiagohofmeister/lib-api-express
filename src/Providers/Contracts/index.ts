@@ -1,1 +1,1 @@
-export * from './AxiosProviderContract'
+export * from './ProviderContract'

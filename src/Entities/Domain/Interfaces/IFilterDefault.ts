@@ -1,4 +1,4 @@
-export interface FiltersDefault {
+export interface IFilterDefault {
   page?: number | string
   size?: number | string
   query?: string

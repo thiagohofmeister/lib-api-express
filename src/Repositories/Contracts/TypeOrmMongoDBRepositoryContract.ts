@@ -1,9 +1,10 @@
-import { FindManyOptions, MongoRepository } from 'typeorm'
-import { FiltersDefault, IItemListModel, IRepository } from '../../Entities'
-import { IEntityDataMapper } from '../../DataMappers'
-import { DataNotFound } from '../../Entities'
+import { FindManyOptions, MongoRepository, ObjectLiteral } from 'typeorm'
+import { EntityDataMapperContract, IFilterDefault } from '../..'
+import { DataNotFound, IItemListModel, IRepository } from '../../Entities'
 
-export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> implements IRepository<TDomainEntity> {
+export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity>
+  implements IRepository<TDomainEntity>
+{
   /**
    * Repositório do ORM.
    *
@@ -19,13 +20,13 @@ export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> impleme
    * @template TDomainEntity
    * @template TDaoEntity
    *
-   * @property {IEntityDataMapper<TDomainEntity, TDaoEntity>} dataMapper
+   * @property {EntityDataMapperContract<TDomainEntity, TDaoEntity>} dataMapper
    */
-  protected readonly dataMapper: IEntityDataMapper<TDomainEntity, TDaoEntity>
+  protected readonly dataMapper: EntityDataMapperContract<TDomainEntity, TDaoEntity>
 
-  public constructor (
+  public constructor(
     repository: MongoRepository<TDaoEntity>,
-    dataMapper: IEntityDataMapper<TDomainEntity, TDaoEntity>
+    dataMapper: EntityDataMapperContract<TDomainEntity, TDaoEntity>
   ) {
     this.repository = repository
     this.dataMapper = dataMapper
@@ -34,26 +35,22 @@ export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> impleme
   /**
    * @inheritDoc
    */
-  public async getAll (filters: FiltersDefault): Promise<IItemListModel<TDomainEntity>> {
-    const where = this.applyPaginator(filters, this.applySearch(filters, this.customToGetAll(filters, {})))
+  public async getAll(filters: IFilterDefault): Promise<IItemListModel<TDomainEntity>> {
+    const query = this.applyPaginator(
+      filters,
+      this.applySearch(filters, this.customToGetAll(filters, {}))
+    )
 
     return {
-      total: await this.repository.count(where),
-      items: (await this.repository.find(where)).map((e) => this.dataMapper.toDomain(e))
+      total: await this.repository.count(query.where as ObjectLiteral),
+      items: (await this.repository.find(query)).map(e => this.dataMapper.toDomain(e))
     }
   }
 
   /**
    * @inheritDoc
    */
-  async findAll(options: FindManyOptions<TDaoEntity> | Partial<TDaoEntity>): Promise<TDomainEntity[]> {
-    return (await this.repository.find(options)).map(item => this.dataMapper.toDomain(item))
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async getOneById (id: string): Promise<TDomainEntity> {
+  public async getOneById(id: string): Promise<TDomainEntity> {
     const entity = await this.repository.findOne(id)
 
     if (!entity) {
@@ -66,9 +63,11 @@ export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> impleme
   /**
    * @inheritDoc
    */
-  public async create (entity: TDomainEntity): Promise<TDomainEntity> {
+  public async create(entity: TDomainEntity): Promise<TDomainEntity> {
     try {
-      const result = await this.repository.save(this.repository.create(this.dataMapper.toDaoEntity(entity)))
+      const result = await this.repository.save(
+        this.repository.create(this.dataMapper.toDaoEntity(entity))
+      )
 
       return this.dataMapper.toDomain(result)
     } catch (e) {
@@ -79,14 +78,33 @@ export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> impleme
   /**
    * @inheritDoc
    */
-  public async createOrUpdate (entity: TDomainEntity): Promise<TDomainEntity> {
-    return this.create(entity)
+  public async save(entity: TDomainEntity): Promise<TDomainEntity> {
+    try {
+      const result = await this.repository.save(
+        this.repository.create(this.dataMapper.toDaoEntity(entity))
+      )
+
+      return this.dataMapper.toDomain(result)
+    } catch (e) {
+      return null
+    }
   }
 
   /**
    * @inheritDoc
    */
-  public async delete (id: string): Promise<boolean> {
+  public async createOrUpdate(entity: TDomainEntity, conditions?: {} | string): Promise<void> {
+    const result = await this.create(entity)
+
+    if (!result) {
+      await this.update(entity, conditions)
+    }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public async delete(id: string): Promise<boolean> {
     try {
       await this.repository.delete(id)
 
@@ -99,8 +117,14 @@ export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> impleme
   /**
    * @inheritDoc
    */
-  public async update (entity: TDomainEntity, conditions?: {} | string): Promise<TDomainEntity> {
-    return this.create(entity)
+  public async update(entity: TDomainEntity, conditions?: {} | string): Promise<boolean> {
+    try {
+      const result = await this.repository.update(conditions, this.dataMapper.toDaoEntity(entity))
+
+      return !!result.affected
+    } catch (e) {
+      return false
+    }
   }
 
   /**
@@ -108,12 +132,15 @@ export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> impleme
    *
    * @template TDaoEntity
    *
-   * @param {FiltersDefault} filters
+   * @param {IFilterDefault} filters
    * @param {FindManyOptions<TDaoEntity>} query
    *
    * @returns {FindManyOptions<TDaoEntity>}
    */
-  public applyPaginator (filters: FiltersDefault, query: FindManyOptions<TDaoEntity>): FindManyOptions<TDaoEntity> {
+  public applyPaginator(
+    filters: IFilterDefault,
+    query: FindManyOptions<TDaoEntity>
+  ): FindManyOptions<TDaoEntity> {
     const skip = (this.getPage(filters) - 1) * this.getSize(filters)
     const take = this.getSize(filters)
 
@@ -131,12 +158,15 @@ export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> impleme
    *
    * @template TDaoEntity
    *
-   * @param {FiltersDefault} filters
+   * @param {IFilterDefault} filters
    * @param {FindManyOptions<TDaoEntity>} query
    *
    * @returns {FindManyOptions<TDaoEntity>}
    */
-  protected customToGetAll (filters: FiltersDefault, query: FindManyOptions<TDaoEntity>): FindManyOptions<TDaoEntity> {
+  protected customToGetAll(
+    filters: IFilterDefault,
+    query: FindManyOptions<TDaoEntity>
+  ): FindManyOptions<TDaoEntity> {
     return query
   }
 
@@ -145,13 +175,15 @@ export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> impleme
    *
    * @template TDaoEntity
    *
-   * @param {FiltersDefault} filters
+   * @param {IFilterDefault} filters
    * @param {FindManyOptions<TDaoEntity>} query
    *
    * @returns {FindManyOptions<TDaoEntity>}
    */
-  protected applySearch (filters: FiltersDefault, query: FindManyOptions<TDaoEntity>): FindManyOptions<TDaoEntity> {
-
+  protected applySearch(
+    filters: IFilterDefault,
+    query: FindManyOptions<TDaoEntity>
+  ): FindManyOptions<TDaoEntity> {
     if (!filters.query) {
       return query
     }
@@ -172,20 +204,20 @@ export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> impleme
   /**
    * Retorna a página para a query.
    *
-   * @param {FiltersDefault} filters
+   * @param {IFilterDefault} filters
    *
    * @returns {string[]}
    */
-  protected getFieldsToSearch (filters: FiltersDefault): string[] {
+  protected getFieldsToSearch(filters: IFilterDefault): string[] {
     return []
   }
 
   /**
    * Retorna a página para a query.
    *
-   * @param {FiltersDefault} filters
+   * @param {IFilterDefault} filters
    */
-  protected getPage (filters: FiltersDefault) {
+  protected getPage(filters: IFilterDefault) {
     filters.page = typeof filters.page === 'string' ? parseInt(filters.page) : filters.page
 
     let page = 1
@@ -199,9 +231,9 @@ export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> impleme
   /**
    * Retorna a quantidade de itens para a query.
    *
-   * @param {FiltersDefault} filters
+   * @param {IFilterDefault} filters
    */
-  protected getSize (filters: FiltersDefault) {
+  protected getSize(filters: IFilterDefault) {
     filters.size = typeof filters.size === 'string' ? parseInt(filters.size) : filters.size
 
     let size = 15
@@ -213,5 +245,11 @@ export class TypeOrmMongoDBRepositoryContract<TDomainEntity, TDaoEntity> impleme
     }
 
     return size
+  }
+
+  public async findAll(filters: IFilterDefault): Promise<TDomainEntity[]> {
+    const query = this.applySearch(filters, this.customToGetAll(filters, {}))
+
+    return (await this.repository.find(query)).map(e => this.dataMapper.toDomain(e))
   }
 }
